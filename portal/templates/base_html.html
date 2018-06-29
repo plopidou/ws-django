@@ -1,7 +1,5 @@
 {% load i18n static %}
-
 {% spaceless %}
-
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -10,7 +8,7 @@
     <title>{% block title %}{% endblock %}</title>
     <meta name="description" content="{% block description %}{% endblock %}">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
-    <link rel="stylesheet" type="text/css" href="{% static 'css/cca.css' %}?t={% now "U" %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/g.css' %}?t={% now "U" %}">
     {# Override this in templates to add extra stylesheets #}
     {% block extra_css %}{% endblock %}
 </head>
@@ -24,7 +22,13 @@
     document.documentElement.classList.add('js');
     </script>
     <header>
-
+        <nav role="navigation">
+            <ul>
+                <li class="{% if request.resolver_match.url_name == 'home_index' %}active{% endif %}"><a href="{% url 'home_index' %}" class="wsnav">home</a></li>
+                <li class="{% if request.resolver_match.url_name == 'page1_index' %}active{% endif %}"><a href="{% url 'page1_index' %}" class="wsnav">page 1</a></li>
+                <li class="{% if request.resolver_match.url_name == 'page2_index' %}active{% endif %}"><a href="{% url 'page2_index' %}" class="wsnav">page 2</a></li>
+            </ul>
+        </nav>
     </header>
     <main role="main">
         {% block content %}{% endblock %}
@@ -32,10 +36,9 @@
     <footer>
 
     </footer>
-    <script type="text/javascript" src="{% static 'js/cca.js' %}?t={% now "U" %}"></script>
+    <script type="text/javascript" src="{% static 'js/g.js' %}?t={% now "U" %}"></script>
 
     {% block extra_js %}{% endblock %}
 </body>
 </html>
-
 {% endspaceless %}

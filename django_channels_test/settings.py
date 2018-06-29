@@ -119,5 +119,8 @@ USE_L10N = True
 USE_TZ = True
 
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'assets')
+STATIC_ROOT = os.path.join(BASE_DIR, 'portal/static')
 STATIC_URL = os.environ.get('STATIC_URL','') if 'STATIC_URL' in os.environ else '/s/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = os.environ.get('MEDIA_URL','') if 'MEDIA_URL' in os.environ else '/m/'

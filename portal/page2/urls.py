@@ -6,6 +6,6 @@ urlpatterns = [
     url(
         r'^$',
         IndexView.as_view(),
-        name='home_index'
+        name='page2_index'
     ),
 ]
