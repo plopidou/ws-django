@@ -1,0 +1,41 @@
+{% load i18n static %}
+
+{% spaceless %}
+
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/cca.css' %}?t={% now "U" %}">
+    {# Override this in templates to add extra stylesheets #}
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    <script>
+    document.createElement('main');
+    document.createElement('header');
+    document.createElement('footer');
+    document.createElement('center');
+    document.documentElement.classList.add('js');
+    </script>
+    <header>
+
+    </header>
+    <main role="main">
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+
+    </footer>
+    <script type="text/javascript" src="{% static 'js/cca.js' %}?t={% now "U" %}"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
+{% endspaceless %}
