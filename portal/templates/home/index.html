@@ -1,16 +1,29 @@
 {% load i18n static %}
 
-<h1>Home</h1>
-{% lorem 4 p %}
+<article>
+    <h1>Home</h1>
+    <section>
+    {% lorem 1 p %}
+    </section>
+    <section class="col2">
+    {% lorem 3 p %}
+    </section>
+    <div style="background:#000;">
+        <img src="{% static "i/load.svg" %}" alt="">
+    </div>
 
-<ul>
-    {% for item in items %}
-    <li>{{ item }}</li>
-    {% endfor %}
-</ul>
+    <ul>
+        {% for item in items %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
 
-<ul>
-    {% for block in blocks %}
-    <li>{{ block }}</li>
-    {% endfor %}
-</ul>
+    <ul>
+        {% for block in blocks %}
+        <li>{{ block }}</li>
+        {% endfor %}
+    </ul>
+</article>
+<aside>
+    home aside
+</aside>

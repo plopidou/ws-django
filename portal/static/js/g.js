@@ -18,6 +18,11 @@ var socket_timer = d.createElement('p');
 socket_timer.id = 'socket-timer';
 d.querySelector('body').appendChild(socket_timer);
 
+// overlayer for loading wait
+var load_layer = d.createElement('div');
+load_layer.id = 'load';
+d.querySelector('body').appendChild(load_layer);
+
 
 var socket = new w.WebSocket(
     'ws://' + w.location.host + d.querySelector('body').dataset['wsnav']
@@ -61,7 +66,7 @@ socket.addEventListener('open', function(){
         var id = message[0];
         var href = message[1];
         var mode = decodeURIComponent(message[2]).slice(1);
-        var target = message[3];
+        var target = decodeURIComponent(message[3]);
         var markup = message[4];
         console.log([href, mode, target]);
 
@@ -81,6 +86,7 @@ socket.addEventListener('open', function(){
                 target_el.insertAdjacentHTML('beforeend', markup);
             }
             socket_timer.innerHTML = (Date.now() - id) + 'ms';
+            wsnav_load_layer_hide();
         }
         else{
             // console no target specified
@@ -99,11 +105,14 @@ socket.addEventListener('open', function(){
         var path = hash[0].replace(/#/g,'');
         hash[1] = decodeURIComponent(hash[1]);
         var mode = hash[1].substring(0,1);
-        var target = hash[1].slice(1);
+        var target = decodeURIComponent(hash[1].slice(1));
 
         //console.log([path, mode, target]);
         if( path && mode && target ){
             wsnav_send(path, mode, target);
+        }
+        else{
+            wsnav_load_layer_hide();
         }
     };
     /**
@@ -114,7 +123,7 @@ socket.addEventListener('open', function(){
             path,
             '!',
             encodeURIComponent(mode),
-            target
+            encodeURIComponent(target)
         ].join('');
     };
 
@@ -131,8 +140,18 @@ socket.addEventListener('open', function(){
         }
     });
 
+    var wsnav_load_layer_show = function(){
+        load_layer.classList.add('on');
+        d.querySelector('body').classList.add('load');
+    };
+    var wsnav_load_layer_hide = function(){
+        load_layer.classList.remove('on');
+        d.querySelector('body').classList.remove('load');
+    };
+
     // listen to initial load for hash in address bar
     var wsnav_hash_init = function(){
+        wsnav_load_layer_show();
         wsnav_hash_parse(w.location.hash);
     };
     wsnav_hash_init();

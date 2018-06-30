@@ -1,10 +1,20 @@
 {% load i18n static %}
 
-<h1>Page 1</h1>
-{% lorem 1 p %}
+<article>
+    <h1>Page 1</h1>
+    <section>
+    {% lorem 1 p %}
+    </section>
+    <section class="col2">
+    {% lorem 4 p %}
+    </section>
 
-<ul>
-    {% for block in blocks %}
-    <li>{{ block }}</li>
-    {% endfor %}
-</ul>
+    <ul>
+        {% for block in blocks %}
+        <li>{{ block }}</li>
+        {% endfor %}
+    </ul>
+</article>
+<aside>
+    page1 aside
+</aside>

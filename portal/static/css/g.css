@@ -11,6 +11,9 @@ body{
     background:#fff;
     font-size:16px;
 }
+body.load{
+    overflow:hidden;
+}
 
 ul,
 ol{
@@ -23,9 +26,26 @@ ol{
     left:0;
     padding:15px;
 }
+#load{
+    z-index:-99;
+    position:absolute;
+    top:0;
+    left:0;
+    height:100%;
+    width:100%;
+    background:rgba(0,0,0,.6) url(/s/i/load.svg) center center no-repeat;
+    opacity:0;
+    transition:all .1s linear;
+}
+#load.on{
+    z-index:99;
+    opacity:1
+}
 
 #header{
     background:#f1f1f1;
+    clear:both;
+    margin:0 0 15px 0;
 }
 #nav > ul{
     text-align:center;
@@ -50,10 +70,64 @@ ol{
     width:100%;
     max-width:970px;
     padding:15px;
+    margin:0 auto;
+    clear:both;
+    overflow:hidden;
+}
+
+@media screen and (min-width: 651px) {
+    #main > article{
+        float:left;
+        width:70%;
+    }
+    #main > aside{
+        float:right;
+        width:30%;
+        padding-left:15px;
+        background:#f1f1f1;
+    }
+}
+@media screen and (max-width: 650px) {
+    #main > aside{
+        margin-top:15px;
+        background:#f1f1f1;
+    }
 }
 #main h1{
     font-size:26px;
     color:#333;
     margin:0 0 15px 0;
+    line-height:1;
+}
+
+#footer{
+    clear:both;
+    background:#f1f1f1;
+    padding:15px;
+    margin:15px 0 0 0;
     text-align:center;
+}
+#footer > ul > li{
+    display:inline-block;
+    margin:0 10px;
+}
+#footer > ul > li > a{
+    color:#000;
+    text-decoration:none;
+}
+
+section{
+    margin:0 0 15px 0;
+}
+
+.col2{
+    -webkit-columns:2 200px;
+    -moz-columns:2 200px;
+    columns:2 200px;
+    -webkit-column-gap:4em;
+    -moz-column-gap:4em;
+    column-gap:4em;
+    -webkit-column-rule:1px dotted #ddd;
+    -moz-column-rule:1px dotted #ddd;
+    column-rule:1px dotted #ddd;
 }
