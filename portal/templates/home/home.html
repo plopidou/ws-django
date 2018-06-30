@@ -1,0 +1,10 @@
+{% load i18n static %}
+
+<h1>Home</h1>
+{% lorem 4 p %}
+
+<ul>
+    {% for item in items %}
+    <li>{{ item }}</li>
+    {% endfor %}
+</ul>

@@ -1,0 +1,15 @@
+<header>
+    <nav role="navigation">
+        <ul>
+            <li class="{% if request.resolver_match.url_name == 'home_index' %}active{% endif %}">
+                <a href="{% url 'home_index' %}" class="wsnav" data-wstarget="#main" data-wsmode="@">home</a>
+            </li>
+            <li class="{% if request.resolver_match.url_name == 'page1_index' %}active{% endif %}">
+                <a href="{% url 'page1_index' %}" class="wsnav" data-wstarget="#main" data-wsmode="@">page 1</a>
+            </li>
+            <li class="{% if request.resolver_match.url_name == 'page2_index' %}active{% endif %}">
+                <a href="{% url 'page2_index' %}" class="wsnav" data-wstarget="#main" data-wsmode="@">page 2</a>
+            </li>
+        </ul>
+    </nav>
+</header>

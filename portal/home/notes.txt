@@ -1,0 +1,17 @@
+several files here:
+
+. contexts.py
+  returns contexts used in the HTML and WS views
+  i.e, most if not all of the data fetching sits here
+
+. consumers.py
+  contain simple function that return:
+  - a context, taken from contexts.py
+  - a template name
+  all used by the generic websocket consumer, to render the context using the template
+  and sending the string to the client
+
+. urls.py and views.py are standard
+  any view would fetch its context from contexts.py
+
+

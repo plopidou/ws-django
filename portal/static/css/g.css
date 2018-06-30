@@ -16,3 +16,11 @@ ul,
 ol{
     list-style-type:none;
 }
+
+#socket-timer{
+    position:absolute;
+    bottom:30px;
+    left:0;
+    padding:10px;
+    border:1px solid #ccc;
+}
