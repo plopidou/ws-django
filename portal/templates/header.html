@@ -1,5 +1,5 @@
-<header>
-    <nav role="navigation">
+<header id="header">
+    <nav role="navigation" id="nav">
         <ul>
             <li class="{% if request.resolver_match.url_name == 'home_index' %}active{% endif %}">
                 <a href="{% url 'home_index' %}" class="wsnav" data-wstarget="#main" data-wsmode="@">home</a>

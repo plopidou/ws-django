@@ -1,5 +1,7 @@
 from django.views.generic import TemplateView
 
+from .contexts import IndexContext
+
 
 class IndexView(TemplateView):
     http_method_names = ['get']
@@ -8,9 +10,6 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['items'] = [
-            'foo',
-            'bar'
-        ]
+        merged_contexts = {**context, **IndexContext()}
 
-        return context
+        return merged_contexts

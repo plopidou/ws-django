@@ -28,13 +28,17 @@ socket.addEventListener('open', function(){
 
     /**
     send message
+    encodeURIComponent:
+    @ -> %40
+    + -> %2B
+    - -> -
     */
-    var wsnav_send = function(path, target, mode){
+    var wsnav_send = function(path, mode, target){
         var id = Date.now();
         var message = [
             id,
             path,
-            mode,
+            '!'+encodeURIComponent(mode),
             target
         ];
         socket.send(JSON.stringify(message));
@@ -49,26 +53,33 @@ socket.addEventListener('open', function(){
     target for querySelector
     mode for one of:
         . @ : replace html
-        . - : insertbefore
-        . + : insertafter
+        . - : insert at begin (prepend)
+        . + : insert at end (append)
     markup to populate the targeted element
     */
     var wsnav_receive = function(message){
         var id = message[0];
         var href = message[1];
-        var target = message[2];
-        var mode = message[3];
+        var mode = decodeURIComponent(message[2]).slice(1);
+        var target = message[3];
         var markup = message[4];
-        console.log(message);
-        // take ref of navigation action and execute
-        if( target ){
-            //console.log('id found!');
-            d.querySelector(target).innerHTML = markup;
-            w.location.hash = [
-                href,
-                mode,
-                target
-            ].join('');
+        console.log([href, mode, target]);
+
+        var target_el =  d.querySelector(target);
+
+        if( target_el ){
+            // replace
+            if (mode == '@'){
+                target_el.innerHTML = markup;
+            }
+            // prepend
+            else if (mode == '-'){
+                target_el.insertAdjacentHTML('afterbegin', markup);
+            }
+            // append
+            else if (mode == '+'){
+                target_el.insertAdjacentHTML('beforeend', markup);
+            }
             socket_timer.innerHTML = (Date.now() - id) + 'ms';
         }
         else{
@@ -78,9 +89,33 @@ socket.addEventListener('open', function(){
 
     /**
     parses the hash passed and if valid, fires the send()
+    // format is #/path/to/page!@#main, for example
     */
-    var wsnav_parse_hash = function(hash){
-        console.log(hash);
+    var wsnav_hash_parse = function(hash){
+        //console.log(hash);
+        hash = hash.split('!');
+        //console.log(hash);
+
+        var path = hash[0].replace(/#/g,'');
+        hash[1] = decodeURIComponent(hash[1]);
+        var mode = hash[1].substring(0,1);
+        var target = hash[1].slice(1);
+
+        //console.log([path, mode, target]);
+        if( path && mode && target ){
+            wsnav_send(path, mode, target);
+        }
+    };
+    /**
+    updates the hash. this will be picked up by w.onhashchange below
+    */
+    var wsnav_hash_update = function(path, mode, target){
+        w.location.hash = [
+            path,
+            '!',
+            encodeURIComponent(mode),
+            target
+        ].join('');
     };
 
     socket.addEventListener('message', function(e){
@@ -92,29 +127,19 @@ socket.addEventListener('open', function(){
         var t = e.target;
         if( t.nodeName.toLowerCase() === 'a' && t.classList.contains('wsnav') ){
             e.preventDefault();
-            wsnav_send(t.pathname, t.dataset['wstarget'], t.dataset['wsmode']);
+            wsnav_hash_update(t.pathname, t.dataset['wsmode'], t.dataset['wstarget']);
         }
     });
 
     // listen to initial load for hash in address bar
-    // format is #/path/to/page@#main, for example
     var wsnav_hash_init = function(){
-        wsnav_parse_hash(w.location.hash);
-        /*
-        hash = hash.split('!');
-        var href = hash[0].replace(/#/g,'');
-        var target = hash[1];
-        if( href && target ){
-            wsnav_send(href, target);
-        }
-        */
+        wsnav_hash_parse(w.location.hash);
     };
     wsnav_hash_init();
 
     // on hash change, fire send
     w.onhashchange = function(){
-        wsnav_parse_hash(w.location.hash);
-
+        wsnav_hash_parse(w.location.hash);
     };
 });
 

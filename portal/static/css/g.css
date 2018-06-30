@@ -7,7 +7,7 @@ button,hr,input{overflow:visible}progress,sub,sup{vertical-align:baseline}[type=
     padding:0;
 }
 body{
-    font-family:'SourceSerifPro-Regular';
+    font-family:'Arial';
     background:#fff;
     font-size:16px;
 }
@@ -19,8 +19,41 @@ ol{
 
 #socket-timer{
     position:absolute;
-    bottom:30px;
+    top:0;
     left:0;
-    padding:10px;
-    border:1px solid #ccc;
+    padding:15px;
+}
+
+#header{
+    background:#f1f1f1;
+}
+#nav > ul{
+    text-align:center;
+}
+#nav > ul > li{
+    display:inline-block;
+}
+#nav > ul > li > a{
+    padding:15px;
+    display:block;
+    text-decoration:none;
+    background:transparent;
+    transition:all .3s ease-out;
+    color:#000;
+}
+#nav > ul > li > a:hover{
+    background:#aaa;
+    color:#fff;
+}
+
+#main{
+    width:100%;
+    max-width:970px;
+    padding:15px;
+}
+#main h1{
+    font-size:26px;
+    color:#333;
+    margin:0 0 15px 0;
+    text-align:center;
 }

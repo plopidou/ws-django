@@ -5,7 +5,9 @@ from channels.generic.websocket import WebsocketConsumer
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 
-from portal.home.consumers import HomeIndex
+from portal.home.consumers import Indexconsumer as HomeIndexConsumer
+from portal.page1.consumers import Indexconsumer as Page1IndexConsumer
+from portal.page2.consumers import Indexconsumer as Page2IndexConsumer
 
 """
 map of url -> {
@@ -16,14 +18,21 @@ ROUTES = {}
 
 # home
 ROUTES[reverse_lazy('home_index')] = {
-   'def': HomeIndex
+   'def': HomeIndexConsumer
+}
+# page 1
+ROUTES[reverse_lazy('page1_index')] = {
+   'def': Page1IndexConsumer
+}
+# page 2
+ROUTES[reverse_lazy('page2_index')] = {
+   'def': Page2IndexConsumer
 }
 
-# print(ROUTES)
+print(ROUTES)
 
 
 class IndexConsumer(WebsocketConsumer):
-    template_name = 'home/index_ws.html'
 
     def connect(self):
         # print(self.scope)
@@ -50,29 +59,23 @@ class IndexConsumer(WebsocketConsumer):
         target: the DOM expression to target the recipient of the render_to_string result
         """
         message = json.loads(text_data)
-        print(message)
+        # print(message)
 
         id = message[0]
-        href = message[1]
+        path = message[1]
         mode = message[2]
         target = message[3]
 
-        if href in ROUTES.keys():
-            print('OK')
-            template_name, ctx = ROUTES[href]['def'](id=id)
-            markup = render_to_string(self.template_name, ctx)
+        if path in ROUTES.keys():
+            template_name, ctx = ROUTES[path]['def'](id=id)
+            markup = render_to_string(template_name, ctx)
         else:
-            print('KO')
             markup = '<p>error</p>'
-
-        # simple: when requested, simply render the template and send the output
-        # ctx = {}
-        # markup = render_to_string(self.template_name, ctx)
 
         self.send(text_data=json.dumps([
             id,
-            href,
-            target,
+            path,
             mode,
+            target,
             markup
         ]))

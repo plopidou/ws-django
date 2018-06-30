@@ -1,0 +1,10 @@
+{% load i18n static %}
+
+<h1>Page 2</h1>
+{% lorem 1 p %}
+
+<ul>
+    {% for block in blocks %}
+    <li>{{ block }}</li>
+    {% endfor %}
+</ul>
