@@ -23,6 +23,11 @@ var load_layer = d.createElement('div');
 load_layer.id = 'load';
 d.querySelector('body').appendChild(load_layer);
 
+// container for messages pushed w/o any request
+var messages = d.createElement('ul');
+messages.id = 'messages';
+d.querySelector('body').appendChild(messages);
+
 
 var socket = new w.WebSocket(
     'ws://' + w.location.host + d.querySelector('body').dataset['wsnav']
@@ -41,6 +46,7 @@ socket.addEventListener('open', function(){
     var wsnav_send = function(path, mode, target){
         var id = Date.now();
         var message = [
+            0,
             id,
             path,
             '!'+encodeURIComponent(mode),
@@ -63,33 +69,48 @@ socket.addEventListener('open', function(){
     markup to populate the targeted element
     */
     var wsnav_receive = function(message){
-        var id = message[0];
-        var href = message[1];
-        var mode = decodeURIComponent(message[2]).slice(1);
-        var target = decodeURIComponent(message[3]);
-        var markup = message[4];
-        console.log([href, mode, target]);
+        //console.log(message);
+        var type = message.shift();
 
-        var target_el =  d.querySelector(target);
+        // response to a "page" request
+        if(type === 1){
+            var id = message.shift();
+            var href = message.shift();
+            var mode = decodeURIComponent(message.shift()).slice(1);
+            var target = decodeURIComponent(message.shift());
+            var markup = message.shift();
+            console.log([type, id, href, mode, target]);
 
-        if( target_el ){
-            // replace
-            if (mode == '@'){
-                target_el.innerHTML = markup;
+            // some other controls here
+            var target_el =  d.querySelector(target);
+
+            if( target_el && markup ){
+                // replace
+                if (mode == '@'){
+                    target_el.innerHTML = markup;
+                }
+                // prepend
+                else if (mode == '-'){
+                    target_el.insertAdjacentHTML('afterbegin', markup);
+                }
+                // append
+                else if (mode == '+'){
+                    target_el.insertAdjacentHTML('beforeend', markup);
+                }
+                else{
+                    return;
+                }
+                socket_timer.innerHTML = (Date.now() - id) + 'ms';
+                wsnav_load_layer_hide();
             }
-            // prepend
-            else if (mode == '-'){
-                target_el.insertAdjacentHTML('afterbegin', markup);
+            else{
+                return;
+                // console no target specified
             }
-            // append
-            else if (mode == '+'){
-                target_el.insertAdjacentHTML('beforeend', markup);
-            }
-            socket_timer.innerHTML = (Date.now() - id) + 'ms';
-            wsnav_load_layer_hide();
         }
-        else{
-            // console no target specified
+        // server push
+        else if (type===2){
+            console.log(message);
         }
     };
 

@@ -41,6 +41,22 @@ ol{
     z-index:99;
     opacity:1
 }
+#messages{
+    position:absolute;
+    bottom:0;
+    right:0;
+    padding:15px;
+    width:250px;
+    border:1px solid #ddd;
+}
+#messages > li{
+    margin:0 0 15px 0;
+    border-bottom:1px solid #ddd;
+}
+#messages > li:last-child{
+    margin:0;
+    border-bottom:none;
+}
 
 #header{
     background:#f1f1f1;
