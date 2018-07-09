@@ -1,6 +1,6 @@
 from django.views.generic import TemplateView
 
-from .contexts import IndexContext
+from block.models import Block
 
 
 class IndexView(TemplateView):
@@ -10,6 +10,11 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        merged_contexts = {**context, **IndexContext()}
+        context['items'] = [
+            'foo',
+            'bar'
+        ]
 
-        return merged_contexts
+        context['blocks'] = Block.objects.all()
+
+        return context

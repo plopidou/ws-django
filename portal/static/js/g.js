@@ -12,6 +12,17 @@ var addEvent = function(object, type, callback){
         object['on'+type] = callback;
     }
 };
+var get_scrollbar_width = function(){
+    var scroll = d.createElement('div');
+    scroll.classList.add('scroll-measure');
+    d.querySelector('body').appendChild(scroll);
+    // return w.innerWidth - d.documentElement.clientWidth;
+    var width = scroll.offsetWidth - scroll.clientWidth;
+    d.querySelector('body').removeChild(scroll);
+    return width;
+};
+var scrollbar_width = get_scrollbar_width();
+console.log(scrollbar_width);
 
 // timer for websocket response times...
 var socket_timer = d.createElement('p');
@@ -108,9 +119,38 @@ socket.addEventListener('open', function(){
                 // console no target specified
             }
         }
-        // server push
+        // server push, directly targeted at element
         else if (type===2){
-            console.log(message);
+            //console.log(message);
+            var mode = message.shift();
+            var target = message.shift();
+            var markup = message.shift();
+            console.log([type, mode, target]);
+
+            var target_el =  d.querySelector(target);
+
+            if( target_el && markup ){
+                // replace
+                if (mode == '@'){
+                    target_el.innerHTML = markup;
+                }
+                // prepend
+                else if (mode == '-'){
+                    target_el.insertAdjacentHTML('afterbegin', markup);
+                }
+                // append
+                else if (mode == '+'){
+                    target_el.insertAdjacentHTML('beforeend', markup);
+                }
+                else{
+                    return;
+                }
+            }
+            else{
+                return;
+                // console no target specified
+            }
+
         }
     };
 
@@ -119,9 +159,7 @@ socket.addEventListener('open', function(){
     // format is #/path/to/page!@#main, for example
     */
     var wsnav_hash_parse = function(hash){
-        //console.log(hash);
         hash = hash.split('!');
-        //console.log(hash);
 
         var path = hash[0].replace(/#/g,'');
         hash[1] = decodeURIComponent(hash[1]);
@@ -163,11 +201,15 @@ socket.addEventListener('open', function(){
 
     var wsnav_load_layer_show = function(){
         load_layer.classList.add('on');
-        d.querySelector('body').classList.add('load');
+        var body = d.querySelector('body');
+        body.classList.add('load');
+        body.style.paddingRight = scrollbar_width + 'px';
     };
     var wsnav_load_layer_hide = function(){
         load_layer.classList.remove('on');
-        d.querySelector('body').classList.remove('load');
+        var body = d.querySelector('body');
+        body.classList.remove('load');
+        body.style.paddingRight = '0';
     };
 
     // listen to initial load for hash in address bar
@@ -179,6 +221,7 @@ socket.addEventListener('open', function(){
 
     // on hash change, fire send
     w.onhashchange = function(){
+        wsnav_load_layer_show();
         wsnav_hash_parse(w.location.hash);
     };
 });

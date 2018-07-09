@@ -1,7 +1,8 @@
 import json
 import uuid
+from timeit import default_timer as timer
 
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from asgiref.sync import async_to_sync
 
 from django.template.loader import render_to_string
@@ -42,19 +43,20 @@ ROUTES[reverse_lazy('page2_index')] = {
    'def': Page2IndexConsumer
 }
 
-print(ROUTES)
+# print(ROUTES)
 
 
-class IndexConsumer(WebsocketConsumer):
+class IndexConsumer(AsyncWebsocketConsumer):
 
-    def connect(self):
+    # def connect(self):
+    async def connect(self):
         """
         self.channel_name: unique to the connection/consumer/client
         self.channel_layer: global instance of RedisChannelLayer
         see: https://channels.readthedocs.io/en/latest/tutorial/part_2.html#enable-a-channel-layer
         """
-        print(self.channel_layer)
-        print(self.channel_name)
+        # print(self.channel_layer)
+        # print(self.channel_name)
 
         # group name is based on user connecting
         user = self.scope['user']
@@ -63,28 +65,27 @@ class IndexConsumer(WebsocketConsumer):
         else:
             self.group_name = str(uuid.uuid4())
 
-        print(self.group_name)
+        # print(self.group_name)
 
         # join a group unique to that consumer
         # reason is we want to be able to push to the client only
         # as it is difficult to iterate over a group's members in channels
-        async_to_sync(self.channel_layer.group_add)(
+
+        # async way
+        await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
         )
+        await self.accept()
 
-        # print(self.scope)
-
-        self.accept()
-
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         # leave self.group_name
-        async_to_sync(self.channel_layer.group_discard)(
+        await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
 
-    def receive(self, text_data):
+    async def receive(self, text_data):
         """
         message is made of:
         id: a unique id
@@ -106,13 +107,21 @@ class IndexConsumer(WebsocketConsumer):
 
         # some controls here...
 
+        # probably need to use resolve here, for dynamic url with placeholder such as <slug>, <uuid>, etc
+        # if it works, get name of url and use it at the key for the ROUTES lookup
         if path in ROUTES.keys():
-            template_name, ctx = ROUTES[path]['def'](id=id)
-            markup = render_to_string(template_name, ctx)
+            template_name, context = await ROUTES[path]['def'](id=id)
+            s = timer()
+            markup = render_to_string(template_name, context)
+            e = timer()
+            # how long?
+            # print('%s ms' % ((e-s)*1000))
         else:
             markup = '<p>error</p>'
 
-        self.send(text_data=json.dumps([
+        # time.sleep(.5)
+
+        await self.send(text_data=json.dumps([
             MESSAGE_TYPE_SERVER_RESPONSE,
             id,
             path,
@@ -122,7 +131,8 @@ class IndexConsumer(WebsocketConsumer):
         ]))
 
         # Send message to own group
-        async_to_sync(self.channel_layer.group_send)(
+        # async:
+        await self.channel_layer.group_send(
             self.group_name,
             {
                 'type': 'group_message',
@@ -132,19 +142,21 @@ class IndexConsumer(WebsocketConsumer):
 
     # Receive message from group
     # since group is unique to this consumer, only it will get the message
-    def group_message(self, event):
+    async def group_message(self, event):
         message = event['message']
 
-        print(message)
+        # print(message)
 
-        mode = '+'
+        mode = '-'
         target = '#messages'
-        markup = '<p>hey there!</p>'
+        markup = '<li>you just navigated to a different page.</li>'
 
         # Send message to WebSocket
-        self.send(text_data=json.dumps([
+
+        await self.send(text_data=json.dumps([
             MESSAGE_TYPE_SERVER_PUSH,
             mode,
             target,
             markup,
         ]))
+

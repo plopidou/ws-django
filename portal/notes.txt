@@ -1,8 +1,5 @@
-several files here:
+several noteworthy files per "view" here:
 
-. contexts.py
-  returns contexts used in the HTML and WS views
-  i.e, most if not all of the data fetching sits here
 
 . consumers.py
   contain simple function that return:

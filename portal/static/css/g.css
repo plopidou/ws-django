@@ -10,6 +10,8 @@ body{
     font-family:'Arial';
     background:#fff;
     font-size:16px;
+    overflow-x:hidden;
+    overflow-y:scroll;
 }
 body.load{
     overflow:hidden;
@@ -28,7 +30,7 @@ ol{
 }
 #load{
     z-index:-99;
-    position:absolute;
+    position:fixed;
     top:0;
     left:0;
     height:100%;
@@ -43,19 +45,35 @@ ol{
 }
 #messages{
     position:absolute;
+    left:0;
     bottom:0;
-    right:0;
-    padding:15px;
-    width:250px;
+    padding:10px;
+    width:200px;
     border:1px solid #ddd;
+    max-height:150px;
+    overflow-y:scroll;
+    font-size:14px;
+    background:#fff;
+    line-height:1;
 }
 #messages > li{
     margin:0 0 15px 0;
+    padding:0 0 15px 0;
     border-bottom:1px solid #ddd;
 }
 #messages > li:last-child{
     margin:0;
+    padding:0;
     border-bottom:none;
+}
+
+.scroll-measure{
+    width:100px;
+	height:100px;
+	overflow:scroll;
+	position:absolute;
+	top:-9999px;
+	left:-9999px;
 }
 
 #header{
@@ -89,6 +107,11 @@ ol{
     margin:0 auto;
     clear:both;
     overflow:hidden;
+    opacity:1;
+    transition:all .1s ease-out;
+}
+body.load #main{
+    opacity:0;
 }
 
 @media screen and (min-width: 651px) {

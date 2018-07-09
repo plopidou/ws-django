@@ -21,6 +21,7 @@
         {% block content %}{% endblock %}
     </main>
     {% include "footer.html" %}
+    <script type="text/javascript" src="{% static 'js/msgpack.min.js' %}?t={% now "U" %}"></script>
     <script type="text/javascript" src="{% static 'js/g.js' %}?t={% now "U" %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
