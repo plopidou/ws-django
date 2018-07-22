@@ -22,6 +22,8 @@
     </main>
     {% include "footer.html" %}
     <script type="text/javascript" src="{% static 'js/msgpack.min.js' %}?t={% now "U" %}"></script>
+    {# https://github.com/stefanpenner/es6-promise#readme #}
+    <script type="text/javascript" src="{% static 'js/es6-promise.auto.min.js' %}?t={% now "U" %}"></script>
     <script type="text/javascript" src="{% static 'js/g.js' %}?t={% now "U" %}"></script>
     {% block extra_js %}{% endblock %}
 </body>

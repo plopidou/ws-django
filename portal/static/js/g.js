@@ -12,218 +12,313 @@ var addEvent = function(object, type, callback){
         object['on'+type] = callback;
     }
 };
-var get_scrollbar_width = function(){
-    var scroll = d.createElement('div');
-    scroll.classList.add('scroll-measure');
-    d.querySelector('body').appendChild(scroll);
-    // return w.innerWidth - d.documentElement.clientWidth;
-    var width = scroll.offsetWidth - scroll.clientWidth;
-    d.querySelector('body').removeChild(scroll);
-    return width;
+// #########################################
+// ########## DB / CACHE ##########
+// #########################################
+// see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
+
+/*
+schema for cached pages:
+{
+    'rts': request timestamp,
+    'ts': response timestamp,
+    'q': querySelector expression,
+    'h': the page href (used as main key index),
+    'm': mode (@-+),
+    'mk': markup
+}
+*/
+
+
+const db_name = 'pages';
+var db;
+var online = w.navigator.onLine;
+var cache_ttl = 10 * 60 * 1000;
+
+// test init chain via promises
+const db_init = function(){
+    var promise = new Promise(function(resolve, reject){
+        var indexedDB = w.indexedDB || w.mozIndexedDB || w.webkitIndexedDB || w.msIndexedDB;
+         // This line should only be needed if it is needed to support the object's constants for older browsers
+        var IDBTransaction = w.IDBTransaction || w.webkitIDBTransaction || w.msIDBTransaction || {READ_WRITE: "readwrite"};
+        var IDBKeyRange = w.IDBKeyRange || w.webkitIDBKeyRange || w.msIDBKeyRange;
+        var db_request = indexedDB.open(db_name/*, 1*/);
+        db_request.onerror = function(e){
+            // console.log('Database error')
+            // console.log(e);
+            reject();
+        };
+        db_request.onsuccess = function(e){
+            db_init(e);
+        };
+        db_request.onupgradeneeded = function(e){
+            db_init(e);
+        };
+        var db_init = function(e){
+            db = e.target.result;
+            // indexedDB events bubbles, so: request -> transactions -> db
+            db.onerror = function(e){
+                console.log('Database error')
+                console.log(e);
+            };
+            console.log(db);
+        };
+        resolve(db);
+    });
+    return promise;
 };
-var scrollbar_width = get_scrollbar_width();
-console.log(scrollbar_width);
-
-// timer for websocket response times...
-var socket_timer = d.createElement('p');
-socket_timer.id = 'socket-timer';
-d.querySelector('body').appendChild(socket_timer);
-
-// overlayer for loading wait
-var load_layer = d.createElement('div');
-load_layer.id = 'load';
-d.querySelector('body').appendChild(load_layer);
-
-// container for messages pushed w/o any request
-var messages = d.createElement('ul');
-messages.id = 'messages';
-d.querySelector('body').appendChild(messages);
 
 
-var socket = new w.WebSocket(
-    'ws://' + w.location.host + d.querySelector('body').dataset['wsnav']
-);
 
-socket.addEventListener('open', function(){
-    // console.log('ws opened');
+// #########################################
+// ########## UI ##########
+// #########################################
 
-    /**
-    send message
-    encodeURIComponent:
-    @ -> %40
-    + -> %2B
-    - -> -
-    */
-    var wsnav_send = function(path, mode, target){
-        var id = Date.now();
-        var message = [
-            0,
-            id,
-            path,
-            '!'+encodeURIComponent(mode),
-            target
-        ];
-        socket.send(JSON.stringify(message));
-    };
+var body = d.querySelector('body'),
+    load_layer,
+    scrollbar_width,
+    socket_timer,
+    messages;
 
-    /**
-    listen to incoming messages
-    receive:
-    [id, href, target, mode, markup]
-    id is used to get the DOM selection string
-    href to update the window.hash
-    target for querySelector
-    mode for one of:
-        . @ : replace html
-        . - : insert at begin (prepend)
-        . + : insert at end (append)
-    markup to populate the targeted element
-    */
-    var wsnav_receive = function(message){
-        //console.log(message);
-        var type = message.shift();
+const ui_init = function(){
+    var promise = new Promise(function(resolve, reject){
 
-        // response to a "page" request
-        if(type === 1){
-            var id = message.shift();
-            var href = message.shift();
-            var mode = decodeURIComponent(message.shift()).slice(1);
-            var target = decodeURIComponent(message.shift());
-            var markup = message.shift();
-            console.log([type, id, href, mode, target]);
+        // get scrollbar width for overflow on/off
+        const get_scrollbar_width = function(){
+            var scroll = d.createElement('div');
+            scroll.classList.add('scroll-measure');
+            d.querySelector('body').appendChild(scroll);
+            var width = scroll.offsetWidth - scroll.clientWidth;
+            d.querySelector('body').removeChild(scroll);
+            return width;
+        };
+        scrollbar_width = get_scrollbar_width();
+        // console.log(scrollbar_width);
 
-            // some other controls here
-            var target_el =  d.querySelector(target);
+        // timer for websocket response times...
+        socket_timer = d.createElement('p');
+        socket_timer.id = 'socket-timer';
+        d.querySelector('body').appendChild(socket_timer);
 
-            if( target_el && markup ){
-                // replace
-                if (mode == '@'){
-                    target_el.innerHTML = markup;
+        // overlayer for loading wait
+        load_layer = d.createElement('div');
+        load_layer.id = 'load';
+        d.querySelector('body').appendChild(load_layer);
+
+        // container for messages pushed w/o any request
+        messages = d.createElement('ul');
+        messages.id = 'messages';
+        d.querySelector('body').appendChild(messages);
+
+        resolve();
+
+    });
+    return promise;
+};
+
+
+// #########################################
+// ########## WEBSOCKET ##########
+// #########################################
+
+const nav_init = function(){
+    var promise = new Promise(function(resolve, reject){
+        const socket = new w.WebSocket(
+            'ws://' + w.location.host + d.querySelector('body').dataset['wsnav']
+        );
+
+        socket.addEventListener('open', function(){
+            // console.log('ws opened');
+
+            /**
+            send message
+            encodeURIComponent:
+            @ -> %40
+            + -> %2B
+            - -> -
+            */
+            const wsnav_send = function(path, mode, target){
+                var id = Date.now();
+                var message = [
+                    0,
+                    id,
+                    path,
+                    '!'+encodeURIComponent(mode),
+                    target
+                ];
+                socket.send(JSON.stringify(message));
+            };
+
+            /**
+            listen to incoming messages
+            receive:
+            [type, id, href, target, mode, markup]
+            . type for one of:
+                . 1: response to a requested path
+                . 2: auto push from server
+            . id is used to get the DOM selection string
+            . href to update the window.hash
+            . target for querySelector
+            . mode for one of:
+                . @ : replace html
+                . - : insert at begin (prepend)
+                . + : insert at end (append)
+            . markup to populate the targeted element
+            */
+            const wsnav_receive = function(message){
+                //console.log(message);
+                var type = message.shift();
+
+                // response to a "page" request
+                if(type === 1){
+                    var id = message.shift();
+                    var href = message.shift();
+                    var mode = decodeURIComponent(message.shift()).slice(1);
+                    var target = decodeURIComponent(message.shift());
+                    var markup = message.shift();
+                    console.log([type, id, href, mode, target]);
+
+                    // some other controls here
+                    var target_el =  d.querySelector(target);
+
+                    if( target_el && markup ){
+                        // replace
+                        if (mode == '@'){
+                            target_el.innerHTML = markup;
+                        }
+                        // prepend
+                        else if (mode == '-'){
+                            target_el.insertAdjacentHTML('afterbegin', markup);
+                        }
+                        // append
+                        else if (mode == '+'){
+                            target_el.insertAdjacentHTML('beforeend', markup);
+                        }
+                        else{
+                            return;
+                        }
+                        socket_timer.innerHTML = (Date.now() - id) + 'ms';
+                        wsnav_load_layer_hide();
+                    }
+                    else{
+                        return;
+                        // console no target specified
+                    }
                 }
-                // prepend
-                else if (mode == '-'){
-                    target_el.insertAdjacentHTML('afterbegin', markup);
+                // server push, directly targeted at element
+                else if (type===2){
+                    //console.log(message);
+                    var mode = message.shift();
+                    var target = message.shift();
+                    var markup = message.shift();
+                    console.log([type, mode, target]);
+
+                    var target_el =  d.querySelector(target);
+
+                    if( target_el && markup ){
+                        // replace
+                        if (mode == '@'){
+                            target_el.innerHTML = markup;
+                        }
+                        // prepend
+                        else if (mode == '-'){
+                            target_el.insertAdjacentHTML('afterbegin', markup);
+                        }
+                        // append
+                        else if (mode == '+'){
+                            target_el.insertAdjacentHTML('beforeend', markup);
+                        }
+                        else{
+                            return;
+                        }
+                    }
+                    else{
+                        return;
+                        // console no target specified
+                    }
+
                 }
-                // append
-                else if (mode == '+'){
-                    target_el.insertAdjacentHTML('beforeend', markup);
+            };
+
+            /**
+            parses the hash passed and if valid, fires the send()
+            // format is #/path/to/page!@#main, for example
+            */
+            const wsnav_hash_parse = function(hash){
+                hash = hash.split('!');
+
+                var path = hash[0].replace(/#/g,'');
+                hash[1] = decodeURIComponent(hash[1]);
+                var mode = hash[1].substring(0,1);
+                var target = decodeURIComponent(hash[1].slice(1));
+
+                //console.log([path, mode, target]);
+                if( path && mode && target ){
+                    wsnav_send(path, mode, target);
                 }
                 else{
-                    return;
+                    wsnav_load_layer_hide();
                 }
-                socket_timer.innerHTML = (Date.now() - id) + 'ms';
-                wsnav_load_layer_hide();
-            }
-            else{
-                return;
-                // console no target specified
-            }
-        }
-        // server push, directly targeted at element
-        else if (type===2){
-            //console.log(message);
-            var mode = message.shift();
-            var target = message.shift();
-            var markup = message.shift();
-            console.log([type, mode, target]);
+            };
+            /**
+            updates the hash. this will be picked up by w.onhashchange below
+            */
+            const wsnav_hash_update = function(path, mode, target){
+                w.location.hash = [
+                    path,
+                    '!',
+                    encodeURIComponent(mode),
+                    encodeURIComponent(target)
+                ].join('');
+            };
 
-            var target_el =  d.querySelector(target);
+            socket.addEventListener('message', function(e){
+                wsnav_receive(JSON.parse(e.data));
+            });
 
-            if( target_el && markup ){
-                // replace
-                if (mode == '@'){
-                    target_el.innerHTML = markup;
+            // listen to relevant clicks
+            addEvent(d.querySelector('body'), 'click', function(e){
+                var t = e.target;
+                if( t.nodeName.toLowerCase() === 'a' && t.classList.contains('wsnav') ){
+                    e.preventDefault();
+                    wsnav_hash_update(t.pathname, t.dataset['wsmode'], t.dataset['wstarget']);
                 }
-                // prepend
-                else if (mode == '-'){
-                    target_el.insertAdjacentHTML('afterbegin', markup);
-                }
-                // append
-                else if (mode == '+'){
-                    target_el.insertAdjacentHTML('beforeend', markup);
-                }
-                else{
-                    return;
-                }
-            }
-            else{
-                return;
-                // console no target specified
-            }
+            });
 
-        }
-    };
+            const wsnav_load_layer_show = function(){
+                load_layer.classList.add('on');
+                body.classList.add('load');
+                body.style.paddingRight = scrollbar_width + 'px';
+            };
+            const wsnav_load_layer_hide = function(){
+                load_layer.classList.remove('on');
+                body.classList.remove('load');
+                body.style.paddingRight = '0';
+            };
 
-    /**
-    parses the hash passed and if valid, fires the send()
-    // format is #/path/to/page!@#main, for example
-    */
-    var wsnav_hash_parse = function(hash){
-        hash = hash.split('!');
+            // listen to initial load for hash in address bar
+            const wsnav_hash_init = function(){
+                wsnav_load_layer_show();
+                wsnav_hash_parse(w.location.hash);
+            };
+            wsnav_hash_init();
 
-        var path = hash[0].replace(/#/g,'');
-        hash[1] = decodeURIComponent(hash[1]);
-        var mode = hash[1].substring(0,1);
-        var target = decodeURIComponent(hash[1].slice(1));
+            // on hash change, fire send
+            w.onhashchange = function(){
+                wsnav_load_layer_show();
+                wsnav_hash_parse(w.location.hash);
+            };
+        });
 
-        //console.log([path, mode, target]);
-        if( path && mode && target ){
-            wsnav_send(path, mode, target);
-        }
-        else{
-            wsnav_load_layer_hide();
-        }
-    };
-    /**
-    updates the hash. this will be picked up by w.onhashchange below
-    */
-    var wsnav_hash_update = function(path, mode, target){
-        w.location.hash = [
-            path,
-            '!',
-            encodeURIComponent(mode),
-            encodeURIComponent(target)
-        ].join('');
-    };
-
-    socket.addEventListener('message', function(e){
-        wsnav_receive(JSON.parse(e.data));
+        resolve();
     });
+    return promise;
+};
 
-    // listen to relevant clicks
-    addEvent(d.querySelector('body'), 'click', function(e){
-        var t = e.target;
-        if( t.nodeName.toLowerCase() === 'a' && t.classList.contains('wsnav') ){
-            e.preventDefault();
-            wsnav_hash_update(t.pathname, t.dataset['wsmode'], t.dataset['wstarget']);
-        }
-    });
 
-    var wsnav_load_layer_show = function(){
-        load_layer.classList.add('on');
-        var body = d.querySelector('body');
-        body.classList.add('load');
-        body.style.paddingRight = scrollbar_width + 'px';
-    };
-    var wsnav_load_layer_hide = function(){
-        load_layer.classList.remove('on');
-        var body = d.querySelector('body');
-        body.classList.remove('load');
-        body.style.paddingRight = '0';
-    };
+ui_init()
+.then(nav_init)
+.then(db_init);
 
-    // listen to initial load for hash in address bar
-    var wsnav_hash_init = function(){
-        wsnav_load_layer_show();
-        wsnav_hash_parse(w.location.hash);
-    };
-    wsnav_hash_init();
-
-    // on hash change, fire send
-    w.onhashchange = function(){
-        wsnav_load_layer_show();
-        wsnav_hash_parse(w.location.hash);
-    };
-});
 
 })(window, document);
