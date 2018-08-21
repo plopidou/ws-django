@@ -16,6 +16,82 @@ const addEvent = function(object, type, callback){
         object['on'+type] = callback;
     }
 };
+// #########################################
+// ########## DB / CACHE ##########
+// #########################################
+// see https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB
+
+/*
+schema for cached pages:
+{
+    'h': hash (used as main key index) of path+mode+query
+    'rts': request timestamp,
+    'ts': response timestamp,
+    't': target == querySelector expression,
+    'p': the page path/href,
+    'm': mode (@-+),
+    'mk': markup
+}
+on click link:
+1) check the db contains a cached copy that is recent enough
+2a) if not, request to server normally
+2b) if yes, use the cached markup
+3) on receive type 1, populate db
+*/
+
+
+const db_name = 'django_channels_test';
+const page_store_name = 'pages';
+var db;
+const online = w.navigator.onLine;
+const cache_ttl = 10 * 60 * 1000;
+
+// test init chain via promises
+const db_init = function(){
+    return;
+    console.log('db_init 1');
+    var promise = new Promise(function(resolve, reject){
+        console.log('db_init 2');
+        var indexedDB = w.indexedDB || w.mozIndexedDB || w.webkitIndexedDB || w.msIndexedDB;
+         // This line should only be needed if it is needed to support the object's constants for older browsers
+        var IDBTransaction = w.IDBTransaction || w.webkitIDBTransaction || w.msIDBTransaction || {READ_WRITE: "readwrite"};
+        var IDBKeyRange = w.IDBKeyRange || w.webkitIDBKeyRange || w.msIDBKeyRange;
+        var db_request = indexedDB.open(db_name/*, 1*/);
+        db_request.onerror = function(e){
+            // console.log('Database error')
+            // console.log(e);
+            resolve();
+        };
+        db_request.onsuccess = function(e){
+            console.log('db_init 3');
+            db_init(e, false);
+        };
+        db_request.onupgradeneeded = function(e){
+            console.log('db_init 4');
+            db_init(e, true);
+        };
+        var db_init = function(e, upgradeneeded){
+            console.log('db_init 5');
+            db = e.target.result;
+            // indexedDB events bubbles, so: request -> transactions -> db
+            db.onerror = function(e){
+                console.log('Database error')
+                console.log(e);
+            };
+
+            // store for pages - the key 'h' is unique
+            if( upgradeneeded ){
+                var pageStore = db.createObjectStore(page_store_name, {keyPath: 'h'});
+            }
+
+            console.log(db);
+            resolve();
+        };
+    });
+    return promise;
+};
+
+
 
 // #########################################
 // ########## UI ##########
@@ -28,14 +104,14 @@ var body = d.querySelector('body'),
     messages;
 
 const ui_init = function(){
-    let promise = new Promise(function(resolve, reject){
+    var promise = new Promise(function(resolve, reject){
 
         // get scrollbar width for overflow on/off
         const get_scrollbar_width = function(){
-            let scroll = d.createElement('div');
+            var scroll = d.createElement('div');
             scroll.classList.add('scroll-measure');
             d.querySelector('body').appendChild(scroll);
-            let width = scroll.offsetWidth - scroll.clientWidth;
+            var width = scroll.offsetWidth - scroll.clientWidth;
             d.querySelector('body').removeChild(scroll);
             return width;
         };
@@ -89,8 +165,8 @@ const nav_init = function(){
             - -> -
             */
             const wsnav_send = function(path, mode, target){
-                let id = Date.now();
-                let message = [
+                var id = Date.now();
+                var message = [
                     0,
                     id,
                     path,
@@ -122,12 +198,12 @@ const nav_init = function(){
 
                 // read response to a "page" request
                 if(type === 1){
-                    let id = message.shift();
-                    let href = message.shift();
-                    let mode = decodeURIComponent(message.shift()).slice(1);
-                    let target = decodeURIComponent(message.shift());
-                    let markup = message.shift();
-                    //console.log([type, id, href, mode, target]);
+                    var id = message.shift();
+                    var href = message.shift();
+                    var mode = decodeURIComponent(message.shift()).slice(1);
+                    var target = decodeURIComponent(message.shift());
+                    var markup = message.shift();
+                    console.log([type, id, href, mode, target]);
 
                     // some other controls here
                     let target_el =  d.querySelector(target);
@@ -162,7 +238,7 @@ const nav_init = function(){
                     let mode = message.shift();
                     let target = message.shift();
                     let markup = message.shift();
-                    //console.log([type, mode, target]);
+                    console.log([type, mode, target]);
 
                     let target_el =  d.querySelector(target);
 
@@ -192,8 +268,10 @@ const nav_init = function(){
             };
 
             /**
-            parses the hash passed and if valid, fires the send()
-            format is #/path/to/page!@#main, for example
+            parses the hash passed and if valid:
+            1) first requests the page from the cache
+            2) if not found, or too old, fires the send()
+            // format is #/path/to/page!@#main, for example
             */
             const wsnav_hash_parse = function(hash){
                 hash = hash.split('!');
@@ -204,8 +282,39 @@ const nav_init = function(){
                 let target = decodeURIComponent(hash[1].slice(1));
 
                 //console.log([path, mode, target]);
-                wsnav_send(path, mode, target);
-                wsnav_load_layer_hide();
+                if( db && path && mode && target ){
+                    // first build hash for the db query
+                    console.log([path,mode,target]);
+                    let s = path+mode+target;
+                    let h = hashCode(s);
+                    console.log(s);
+
+                    let cached_page;
+
+                    let transaction = db.transaction(db_name);
+                    let objectStore = transaction.objectStore(db_name);
+                    let request = objectStore.get(s);
+
+                    request.onsuccess = function(e){
+                        cached_page = request.result;
+                        // if found in the cache, use it
+                        if( cached_page ){
+                            console.log('got the page in cache ' + cached_page);
+                        }
+                        // otherwise, simply send request
+                        // the response will be cached
+                        else{
+                            wsnav_send(path, mode, target);
+                        }
+                    };
+                    // on failure, simply call server
+                    request.onerror = function(e){
+                        wsnav_send(path, mode, target);
+                    };
+                }
+                else{
+                    wsnav_load_layer_hide();
+                }
             };
             /**
             updates the hash. this will be picked up by w.onhashchange below
@@ -263,7 +372,8 @@ const nav_init = function(){
 };
 
 
-ui_init()
+db_init()
+.then(ui_init)
 .then(nav_init);
 
 

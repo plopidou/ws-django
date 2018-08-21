@@ -9,9 +9,9 @@ from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.conf import settings
 
-from portal.home.consumers import Indexconsumer as HomeIndexConsumer
-from portal.page1.consumers import Indexconsumer as Page1IndexConsumer
-from portal.page2.consumers import Indexconsumer as Page2IndexConsumer
+from portal.home.consumers import IndexConsumer as HomeIndexConsumer
+from portal.page1.consumers import IndexConsumer as Page1IndexConsumer
+from portal.page2.consumers import IndexConsumer as Page2IndexConsumer
 
 MESSAGE_TYPE_CLIENT_REQUEST = 0
 MESSAGE_TYPE_SERVER_RESPONSE = 1
@@ -19,7 +19,7 @@ MESSAGE_TYPE_SERVER_PUSH = 2
 MESSAGE_TYPES = {
     MESSAGE_TYPE_CLIENT_REQUEST: 'Coming from client as a request',
     MESSAGE_TYPE_SERVER_RESPONSE: 'Sent to client as a response',
-    MESSAGE_TYPE_SERVER_PUSH: 'Sent to client a push',
+    MESSAGE_TYPE_SERVER_PUSH: 'Sent to client as push',
 }
 
 
@@ -28,21 +28,20 @@ map of url -> {
     def: method to return the markup for that "websocket view"
 }
 """
-ROUTES = {}
-
-# home
-ROUTES[reverse_lazy('home_index')] = {
-   'def': HomeIndexConsumer
+ROUTES = {
+    # home
+    reverse_lazy('home_index'): {
+       'def': HomeIndexConsumer
+    },
+    # page 1
+    reverse_lazy('page1_index'): {
+       'def': Page1IndexConsumer
+    },
+    # page 2
+    reverse_lazy('page2_index'): {
+       'def': Page2IndexConsumer
+    }
 }
-# page 1
-ROUTES[reverse_lazy('page1_index')] = {
-   'def': Page1IndexConsumer
-}
-# page 2
-ROUTES[reverse_lazy('page2_index')] = {
-   'def': Page2IndexConsumer
-}
-
 # print(ROUTES)
 
 

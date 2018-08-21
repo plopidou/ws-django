@@ -8,7 +8,7 @@ def get_all_blocks():
     return Block.objects.all()
 
 
-async def Indexconsumer(id=0):
+async def IndexConsumer(id=0):
     template_name = 'page2/index_ws.html'
 
     context = {
