@@ -25,21 +25,21 @@ MESSAGE_TYPES = {
 
 """
 map of url -> {
-    def: method to return the markup for that "websocket view"
+    consumer: method to return the markup for that "websocket view"
 }
 """
 ROUTES = {
     # home
     reverse_lazy('home_index'): {
-       'def': HomeIndexConsumer
+       'consumer': HomeIndexConsumer
     },
     # page 1
     reverse_lazy('page1_index'): {
-       'def': Page1IndexConsumer
+       'consumer': Page1IndexConsumer
     },
     # page 2
     reverse_lazy('page2_index'): {
-       'def': Page2IndexConsumer
+       'consumer': Page2IndexConsumer
     }
 }
 # print(ROUTES)
@@ -109,7 +109,7 @@ class IndexConsumer(AsyncWebsocketConsumer):
         # probably need to use resolve here, for dynamic url with placeholder such as <slug>, <uuid>, etc
         # if it works, get name of url and use it at the key for the ROUTES lookup
         if path in ROUTES.keys():
-            template_name, context = await ROUTES[path]['def'](id=id)
+            template_name, context = await ROUTES[path]['consumer'](id=id)
             s = timer()
             markup = render_to_string(template_name, context)
             e = timer()
