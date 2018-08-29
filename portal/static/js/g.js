@@ -205,7 +205,6 @@ const nav_init = function(){
 
                 //console.log([path, mode, target]);
                 wsnav_send(path, mode, target);
-                wsnav_load_layer_hide();
             };
             /**
             updates the hash. this will be picked up by w.onhashchange below
@@ -224,23 +223,24 @@ const nav_init = function(){
             });
 
             // listen to relevant clicks
-            addEvent(d.querySelector('body'), 'click', function(e){
+            addEvent(body, 'click', function(e){
                 let t = e.target;
                 if( t.nodeName.toLowerCase() === 'a' && t.classList.contains('wsnav') ){
                     e.preventDefault();
+                    // change hash
                     wsnav_hash_update(t.pathname, t.dataset['wsmode'], t.dataset['wstarget']);
                 }
             });
 
             const wsnav_load_layer_show = function(){
-                load_layer.classList.add('on');
                 body.classList.add('load');
                 body.style.paddingRight = scrollbar_width + 'px';
+                load_layer.classList.add('on');
             };
             const wsnav_load_layer_hide = function(){
                 load_layer.classList.remove('on');
                 body.classList.remove('load');
-                body.style.paddingRight = '0';
+                body.style.paddingRight = 0;
             };
 
             // listen to initial load for hash in address bar

@@ -40,7 +40,7 @@ on click link:
 */
 
 
-const db_name = 'django_channels_test';
+const db_name = 'ws_django';
 const page_store_name = 'pages';
 var db;
 const online = w.navigator.onLine;
@@ -49,44 +49,8 @@ const cache_ttl = 10 * 60 * 1000;
 // test init chain via promises
 const db_init = function(){
     return;
-    console.log('db_init 1');
     var promise = new Promise(function(resolve, reject){
-        console.log('db_init 2');
-        var indexedDB = w.indexedDB || w.mozIndexedDB || w.webkitIndexedDB || w.msIndexedDB;
-         // This line should only be needed if it is needed to support the object's constants for older browsers
-        var IDBTransaction = w.IDBTransaction || w.webkitIDBTransaction || w.msIDBTransaction || {READ_WRITE: "readwrite"};
-        var IDBKeyRange = w.IDBKeyRange || w.webkitIDBKeyRange || w.msIDBKeyRange;
-        var db_request = indexedDB.open(db_name/*, 1*/);
-        db_request.onerror = function(e){
-            // console.log('Database error')
-            // console.log(e);
-            resolve();
-        };
-        db_request.onsuccess = function(e){
-            console.log('db_init 3');
-            db_init(e, false);
-        };
-        db_request.onupgradeneeded = function(e){
-            console.log('db_init 4');
-            db_init(e, true);
-        };
-        var db_init = function(e, upgradeneeded){
-            console.log('db_init 5');
-            db = e.target.result;
-            // indexedDB events bubbles, so: request -> transactions -> db
-            db.onerror = function(e){
-                console.log('Database error')
-                console.log(e);
-            };
-
-            // store for pages - the key 'h' is unique
-            if( upgradeneeded ){
-                var pageStore = db.createObjectStore(page_store_name, {keyPath: 'h'});
-            }
-
-            console.log(db);
-            resolve();
-        };
+        resolve();
     });
     return promise;
 };

@@ -108,7 +108,7 @@ ol{
     clear:both;
     overflow:hidden;
     opacity:1;
-    transition:all .1s ease-out;
+    transition:all .1s linear;
 }
 body.load #main{
     opacity:0;

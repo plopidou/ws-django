@@ -1,6 +1,7 @@
 import json
 import uuid
 from timeit import default_timer as timer
+import time
 
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from asgiref.sync import async_to_sync
@@ -67,7 +68,7 @@ class IndexConsumer(AsyncWebsocketConsumer):
         # print(self.group_name)
 
         # join a group unique to that consumer
-        # reason is we want to be able to push to the client only
+        # reason is we want to be able to push to <THIS> client only
         # as it is difficult to iterate over a group's members in channels
 
         # async way
@@ -88,7 +89,7 @@ class IndexConsumer(AsyncWebsocketConsumer):
         """
         message is made of:
         id: a unique id
-        href: the "link"
+        href/path: the "link"
         mode:
             +: append after target's innerHTML
             -: prepend before target's innerHTML
@@ -96,13 +97,14 @@ class IndexConsumer(AsyncWebsocketConsumer):
         target: the DOM expression to target the recipient of the render_to_string result
         """
         message = json.loads(text_data)
-        # print(message)
 
         type = message.pop(0)
         id = message.pop(0)
         path = message.pop(0)
         mode = message.pop(0)
         target = message.pop(0)
+
+        print('request for %s' % path)
 
         # some controls here...
 
@@ -130,6 +132,7 @@ class IndexConsumer(AsyncWebsocketConsumer):
         ]))
 
         # Send message to own group
+        # this is for the "push" notification box client-side
         # async:
         await self.channel_layer.group_send(
             self.group_name,
